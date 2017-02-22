@@ -1,0 +1,26 @@
+{
+  "name": "examination",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "errorhandler": "^1.4.3",
+    "express": "^4.13.3",
+    "express-session": "^1.13.0",
+    "http-status-codes": "^1.1.6"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IrinaZvarich/examination.git"
+  },
+  "author": "Irina Zvarych",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IrinaZvarich/examination/issues"
+  },
+  "homepage": "https://github.com/IrinaZvarich/examination#readme",
+  "devDependencies": {},
+  "description": ""
+}

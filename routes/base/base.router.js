@@ -24,10 +24,13 @@ class RouterProvider {
         const reqData = req.query;
         const stringURL = reqData.url;
         const stringElement = reqData.element;
-        const urlDomain = urlBase.parse(stringURL); 
+        const urlDomain = urlBase.parse(stringURL);
         const myHostname = new parserURL(stringURL);
         const siteKey = req._parsedUrl.search;
         let PageLinks = [];
+        // Dont place all this functions below inside a class methods.
+        // Because they will be created again and again on every new instance and every call of this method.
+        // You should place them out of the class or define them as class methods if it is needed.
         function onErrorCallback(err) {
                 console.log(err);
         }
@@ -52,14 +55,14 @@ class RouterProvider {
                     //console.log(res);
                     if (!err){
                         const $ = cheerio.load(res.body);
-                        
+
                         $('a').each(function(i) {
                             if ((urlBase.parse($(this).attr('href')).hostname == myHostname.hostname)||($(this).attr('href').charAt(0)=='/')){
                                 if(($(this).attr('href').charAt(0)=='/')){
                                     PageLinks[i] = `${urlDomain.protocol}//${urlDomain.hostname}${$(this).attr('href')}`;
                                 } else {
                                     PageLinks[i] = $(this).attr('href');
-                                }       
+                                }
                             }
                         });
                         for (var i = PageLinks.length; i >= 0; i--) {
@@ -70,7 +73,7 @@ class RouterProvider {
                     } else {
                         reject(err);
                     }
-                }); 
+                });
             });
         }
         function saveToRedis (key, data, onError, onSuccess){
@@ -91,7 +94,12 @@ class RouterProvider {
         function readFromRedis(key, onError, onSuccess){
             //client.on('error', onErrorCallback);
             client.get(key, function (err, repl) {
-                client.quit();
+                client.quit(); // This will close connection and you will not able to make requests anymore.
+                // So you will have to open new connection again and again.
+                // This is usually not the best practice, especially considering that Node.js has async I/O and can handle multiple requests at the time.
+                // Some guys even created this module to prevent this kind of issues https://github.com/dwyl/redis-connection#why
+                // But probably the best practice is to use connectionPool, especially if you use blocking commands like BRPOP or SUBSCRIBE.
+                // Read The Little Redis Book
                 if (err) {
                     onError(err);
                     client.quit();
@@ -111,7 +119,7 @@ class RouterProvider {
             });
             return Promise.all(links);
         })
-        .then((result) => {  
+        .then((result) => {
             const jsonData = JSON.stringify(result);
             return new Promise(function(resolve, reject) {
                 saveToRedis(siteKey,jsonData, onErrorCallback, resolve);
@@ -122,23 +130,27 @@ class RouterProvider {
             return new Promise((resolve, reject) => {
                 readFromRedis(siteKey, onErrorCallback, resolve);
             });
-            
+
         })
         .then((result) => {
             res.json(result);
         })
-        .catch(function (error) { 
+        .catch(function (error) {
             console.log(error);
             res.json('Having trouble - try again');
             return;
         });
     }
     show(req, res) {
+        // this function also should not be defined here, but outside the class
         function readAllFromRedis(){
             return new Promise(function (resolve, reject) {
                 client.keys('*', function (err, keys) {
-                    if (!err){ 
-                        let links = keys.map(function(elem) {    
+                  // Using KEYS command for this kind of purpose is anti-pattern.
+                  // Please read docs here https://redis.io/commands/keys
+                  // and The Little Redis Book
+                    if (!err){
+                        let links = keys.map(function(elem) {
                             return  {
                                  "url": urlBase.parse(elem.replace('?url=', '')).hostname,
                                  "element": urlBase.parse(elem.replace('?url=', '')).path
@@ -148,10 +160,10 @@ class RouterProvider {
                     } else {
                         reject(err);
                     }
-                }); 
-            });      
+                });
+            });
         }
-         
+
         readAllFromRedis()
         .then((result) => {
             console.log(result);
@@ -171,13 +183,13 @@ class RouterProvider {
         function deleteItemFromRedis(){
             return new Promise(function (resolve, reject) {
                 client.del(siteKey, function (err, reply) {
-                    if (!err){ 
+                    if (!err){
                         resolve(reply);
                     } else {
                         reject(err);
                     }
-                }); 
-            });      
+                });
+            });
         }
         deleteItemFromRedis()
         .then((result) => {
@@ -188,7 +200,7 @@ class RouterProvider {
             console.log(error);
             res.json('Having trouble - try again');
             return;
-        });        
+        });
     }
 }
 
